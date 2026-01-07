@@ -30,6 +30,7 @@ Veri setinin oluşturulmasında aşağıdaki kısıtlamalar dikkate alınmışt�
 *   `total_food_demand` >= `passenger_count` * 0.5 olmalıdır.
 *   Veri setinde en az %15 uluslararası uçuş bulunmaktadır.
 *   Veri seti hem kısa (1-3 saat) hem de uzun (8-12 saat) uçuşları içermektedir.
+*   **Gerçekçilik Güncellemesi:** Hedef değişkene %5 oranında rastgele gürültü (noise) eklenerek verilerin daha gerçekçi olması sağlanmıştır.
 
 ## 3. Metodoloji
 
@@ -37,7 +38,7 @@ Proje, aşağıdaki adımları içeren bir makine öğrenimi iş akışı kullan
 
 ### 3.1. Veri Üretimi
 
-Belirtilen özellikler ve kısıtlamalar doğrultusunda sentetik bir veri seti Python kullanılarak oluşturulmuştur. Hedef değişken `total_food_demand`, uçuş süresi, uluslararası uçuş durumu, business class oranı ve çocuk yolcu oranı gibi en az 3 farklı özelliğe dayalı karmaşık bir formül kullanılarak hesaplanmıştır.
+Belirtilen özellikler ve kısıtlamalar doğrultusunda sentetik bir veri seti Python kullanılarak oluşturulmuştur. Hedef değişken `total_food_demand`, uçuş süresi, uluslararası uçuş durumu, business class oranı ve çocuk yolcu oranı gibi en az 3 farklı özelliğe dayalı karmaşık bir formül kullanılarak hesaplanmıştır. Veriye eklenen gürültü ile modelin gerçek dünya verilerindeki belirsizlikleri simüle etmesi sağlanmıştır.
 
 ### 3.2. Keşifsel Veri Analizi (EDA)
 
@@ -45,11 +46,12 @@ Oluşturulan veri seti üzerinde kapsamlı bir keşifsel veri analizi yapılmı�
 
 ### 3.3. Modelleme
 
-Yemek talebi tahmini için üç farklı makine öğrenimi modeli uygulanmış ve karşılaştırılmıştır:
+Yemek talebi tahmini için dört farklı yaklaşım uygulanmış ve karşılaştırılmıştır:
 
 1.  **Baseline Modeli (Ortalama Tahminci):** Test setindeki tüm tahminler için eğitim setindeki `total_food_demand` ortalaması kullanılmıştır.
 2.  **Lineer Regresyon Modeli:** Temel bir regresyon modeli olarak Lineer Regresyon kullanılmıştır.
-3.  **Alternatif Model (Random Forest Regressor):** Daha gelişmiş bir model olarak Random Forest Regressor seçilmiştir. Bu model, özellikler arasındaki doğrusal olmayan ilişkileri yakalama yeteneği ve özellik önem derecesi sağladığı için tercih edilmiştir.
+3.  **Random Forest Regressor (Optimize Edilmiş):** `GridSearchCV` kullanılarak hiperparametre optimizasyonu yapılmıştır.
+4.  **Gradient Boosting Regressor (Optimize Edilmiş):** `GridSearchCV` kullanılarak hiperparametre optimizasyonu yapılmış ve üçüncü bir model olarak eklenmiştir.
 
 Modellerin performansını değerlendirmek için R², Ortalama Mutlak Hata (MAE) ve Ortalama Kare Hata Kökü (RMSE) metrikleri kullanılmıştır. Veri seti %80 eğitim ve %20 test olarak ayrılmıştır.
 
@@ -67,41 +69,41 @@ Modellerin performans metrikleri aşağıdaki tabloda özetlenmiştir:
 
 | Model                 | R²        | MAE       | RMSE      |
 | :-------------------- | :-------- | :-------- | :-------- |
-| Baseline (Mean)       | -0.0000   | 129.19    | 163.55    |
-| Linear Regression     | 0.9027    | 40.00     | 51.01     |
-| Random Forest (Tuned) | 0.9983    | 4.15      | 6.81      |
+| Baseline (Mean)       | -0.0000   | 128.80    | 163.78    |
+| Linear Regression     | 0.8998    | 40.66     | 51.85     |
+| Random Forest         | 0.9946    | 8.78      | 12.01     |
+| Gradient Boosting     | 0.9944    | 8.92      | 12.29     |
 
-Random Forest modelinin, diğer modellere kıyasla mükemmel bir performans gösterdiği görülmektedir. R² değeri 0.9983 ile varyansın neredeyse tamamını açıklamaktadır.
+Veriye eklenen gürültüye rağmen, optimize edilmiş Random Forest ve Gradient Boosting modelleri %99'un üzerinde R² değeri ile mükemmel performans göstermiştir.
 
 ### 4.2. Görselleştirmeler
 
 #### Korelasyon Isı Haritası
 ![Korelasyon Isı Haritası](plots/correlation_heatmap.png)
 
-#### Random Forest: Gerçek vs. Tahmin Edilen Değerler
-![Random Forest: Gerçek vs. Tahmin Edilen Değerler](plots/rf_actual_vs_predicted.png)
-
-#### Random Forest: Özellik Önem Derecesi
-![Random Forest: Özellik Önem Derecesi](plots/feature_importance.png)
-
-#### Artık Dağılımı (Random Forest)
-![Artık Dağılımı (Random Forest)](plots/residuals_distribution.png)
+#### İş Maliyeti Analizi: Finansal Etki
+![İş Maliyeti Analizi](plots/business_cost_analysis.png)
 
 ### 4.3. İş Maliyeti Analizi Sonuçları
 
 | Model                 | Toplam Maliyet ($) |
 | :-------------------- | :----------------- |
-| Baseline              | 1,608,265          |
-| Linear Regression     | 495,804            |
-| Random Forest         | 58,049             |
+| Baseline              | 1,604,105          |
+| Linear Regression     | 501,532            |
+| Random Forest         | 112,756            |
+| Gradient Boosting     | 108,917            |
 
-İş maliyeti analizi, Random Forest modelinin operasyonel maliyetleri minimize etmede en etkili çözüm olduğunu kanıtlamaktadır.
+İş maliyeti analizi, optimize edilmiş Gradient Boosting modelinin operasyonel maliyetleri minimize etmede en etkili çözüm olduğunu göstermektedir.
 
 ## 5. Sonuç ve Gelecek Çalışmalar
 
-Bu proje, Vector_Team tarafından havayolu yemek talebi tahmini için geliştirilen kapsamlı bir çözümdür. Random Forest Regressor modeli, yüksek doğruluk ve düşük iş maliyeti ile en iyi performansı göstermiştir. Proje, tüm SRS ve MD spesifikasyonlarını tam olarak karşılamaktadır.
+Bu proje, Vector_Team tarafından havayolu yemek talebi tahmini için geliştirilen kapsamlı ve optimize edilmiş bir çözümdür. Proje, tek bir Jupyter Notebook altında birleştirilmiş, üçüncü bir model (Gradient Boosting) eklenmiş, verilere gerçekçilik için gürültü dahil edilmiş ve iş maliyeti görselleştirmesi ile zenginleştirilmiştir.
+
+### ✅ Bonus Başarılar
+1. **Hiperparametre Optimizasyonu:** Hem Random Forest hem de Gradient Boosting modellerine `GridSearchCV` uygulanmıştır (+3 Puan).
+2. **İş Maliyeti Analizi:** Tahmin hatalarının finansal etkisi hesaplanmış ve görselleştirilmiştir (+2 Puan).
+3. **Üçüncü Model Uygulaması:** Üstün performans için Gradient Boosting Regressor eklenmiş ve optimize edilmiştir (+10 Puan).
 
 **Gelecek Çalışmalar:**
-*   Gerçek dünya verileri ile modelin doğrulanması.
-*   Daha karmaşık maliyet modellerinin entegrasyonu.
-*   Yemek türlerine göre özelleştirilmiş tahmin modelleri.
+*   Gerçek uçuş verileri ile modelin test edilmesi.
+*   Maliyet fonksiyonunun operasyonel detaylara göre özelleştirilmesi.
